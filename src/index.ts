@@ -27,21 +27,51 @@ export default {
     env: Env,
     ctx: ExecutionContext
   ): Promise<Response> {
-    const { searchParams } = new URL(request.url);
+    const { origin, searchParams } = new URL(request.url);
     const query = searchParams.get("q");
     if (query) {
-      const res = await fetch(query, { redirect: "follow" });
-      const body = await res.text();
-      const md = extractMetadata(body);
-
-      const ret = new Response(JSON.stringify(md));
-      ret.headers.set("content-type", "application/json");
-      return ret;
+      if (request.method === "OPTIONS") {
+        return handleOptions(request);
+      } else {
+        const md = await extractMetadata(query);
+        const ret = new Response(JSON.stringify(md));
+        ret.headers.set("content-type", "application/json");
+        ret.headers.set("Access-Control-Allow-Origin", "*");
+        ret.headers.set(
+          "Access-Control-Allow-Methods",
+          "GET, POST, PUT, DELETE, OPTIONS"
+        );
+        return ret;
+      }
     } else {
-      return new Response("Hello World!");
+      return new Response("Not Found", { status: 404 });
     }
   },
 };
+
+// From: https://stackoverflow.com/a/69685872
+function handleOptions(request: Request) {
+  let headers = request.headers;
+  if (
+    headers.get("Origin") !== null &&
+    headers.get("Access-Control-Request-Method") !== null &&
+    headers.get("Access-Control-Request-Headers") !== null
+  ) {
+    return new Response(null, {
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET,HEAD,POST,OPTIONS",
+        "Access-Control-Max-Age": "86400",
+        "Access-Control-Allow-Headers":
+          request.headers.get("Access-Control-Request-Headers") || "",
+      },
+    });
+  } else {
+    return new Response(null, {
+      headers: { Allow: "GET, HEAD, POST, OPTIONS" },
+    });
+  }
+}
 
 type Metadata = {
   title?: string | null;
@@ -50,8 +80,10 @@ type Metadata = {
   image?: string | null;
 };
 
-function extractMetadata(html: string): Metadata {
-  const parsed = parse(html);
+async function extractMetadata(query: string): Promise<Metadata> {
+  const res = await fetch(query, { redirect: "follow" });
+  const body = await res.text();
+  const parsed = parse(body);
 
   const title =
     parsed
@@ -67,7 +99,8 @@ function extractMetadata(html: string): Metadata {
 
   const url =
     parsed.querySelector('link[rel="canonical"]')?.getAttribute("href") ||
-    parsed.querySelector('meta[property="og:url"]')?.getAttribute("content");
+    parsed.querySelector('meta[property="og:url"]')?.getAttribute("content") ||
+    query;
 
   const image = parsed
     .querySelector('meta[property="og:image"]')
