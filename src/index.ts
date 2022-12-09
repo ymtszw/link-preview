@@ -27,20 +27,22 @@ export default {
     env: Env,
     ctx: ExecutionContext
   ): Promise<Response> {
-    const { origin, searchParams } = new URL(request.url);
+    const { searchParams } = new URL(request.url);
+    const origin = request.headers.get("Origin") || "*";
     const query = searchParams.get("q");
     if (query) {
       if (request.method === "OPTIONS") {
-        return handleOptions(request);
+        return handleOptions(request, origin);
       } else {
         const md = await extractMetadata(query);
-        const ret = new Response(JSON.stringify(md));
-        ret.headers.set("content-type", "application/json");
-        ret.headers.set("Access-Control-Allow-Origin", "*");
-        ret.headers.set(
-          "Access-Control-Allow-Methods",
-          "GET, POST, PUT, DELETE, OPTIONS"
-        );
+        const ret = new Response(JSON.stringify(md), {
+          headers: {
+            "content-type": "application/json",
+            Vary: "Origin",
+            "Access-Control-Allow-Origin": origin,
+            "Access-Control-Allow-Methods": "GET",
+          },
+        });
         return ret;
       }
     } else {
@@ -50,7 +52,7 @@ export default {
 };
 
 // From: https://stackoverflow.com/a/69685872
-function handleOptions(request: Request) {
+function handleOptions(request: Request, origin: string) {
   let headers = request.headers;
   if (
     headers.get("Origin") !== null &&
@@ -59,8 +61,9 @@ function handleOptions(request: Request) {
   ) {
     return new Response(null, {
       headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET,HEAD,POST,OPTIONS",
+        Vary: "Origin",
+        "Access-Control-Allow-Origin": origin,
+        "Access-Control-Allow-Methods": "GET",
         "Access-Control-Max-Age": "86400",
         "Access-Control-Allow-Headers":
           request.headers.get("Access-Control-Request-Headers") || "",
@@ -68,7 +71,7 @@ function handleOptions(request: Request) {
     });
   } else {
     return new Response(null, {
-      headers: { Allow: "GET, HEAD, POST, OPTIONS" },
+      headers: { Allow: "GET" },
     });
   }
 }
@@ -94,8 +97,7 @@ async function extractMetadata(query: string): Promise<Metadata> {
     parsed
       .querySelector('meta[property="og:description"]')
       ?.getAttribute("content") ||
-    parsed.querySelector('meta[name="description"]')?.getAttribute("content") ||
-    title;
+    parsed.querySelector('meta[name="description"]')?.getAttribute("content");
 
   const url =
     parsed.querySelector('link[rel="canonical"]')?.getAttribute("href") ||
