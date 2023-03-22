@@ -12,8 +12,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v2
-      - uses: cloudflare/wrangler-action@master
+      - name: Publish
+        uses: cloudflare/wrangler-action@2
         with:
           apiToken: ${{ secrets.CF_API_TOKEN }}
-        env:
-          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          accountId: ${{ secrets.CF_ACCOUNT_ID }}
