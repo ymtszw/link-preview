@@ -1,25 +1,12 @@
 /**
- * Welcome to Cloudflare Workers! This is your first worker.
+ * Cloudflare Workers implementation of link-preview API service.
  *
- * - Run `wrangler dev src/index.ts` in your terminal to start a development server
- * - Open a browser tab at http://localhost:8787/ to see your worker in action
- * - Run `wrangler publish src/index.ts --name my-worker` to publish your worker
- *
- * Learn more at https://developers.cloudflare.com/workers/
+ * Workers doc: https://developers.cloudflare.com/workers/
  */
 
 import { parse } from "node-html-parser";
 
-export interface Env {
-  // Example binding to KV. Learn more at https://developers.cloudflare.com/workers/runtime-apis/kv/
-  // MY_KV_NAMESPACE: KVNamespace;
-  //
-  // Example binding to Durable Object. Learn more at https://developers.cloudflare.com/workers/runtime-apis/durable-objects/
-  // MY_DURABLE_OBJECT: DurableObjectNamespace;
-  //
-  // Example binding to R2. Learn more at https://developers.cloudflare.com/workers/runtime-apis/r2/
-  // MY_BUCKET: R2Bucket;
-}
+export interface Env {}
 
 export default {
   async fetch(
@@ -27,13 +14,15 @@ export default {
     env: Env,
     ctx: ExecutionContext
   ): Promise<Response> {
-    const { searchParams } = new URL(request.url);
+    const reqUrl = new URL(request.url);
     const origin = request.headers.get("Origin") || "*";
-    const query = searchParams.get("q");
-    if (query) {
-      if (request.method === "OPTIONS") {
-        return handleOptions(request, origin);
-      } else {
+
+    if (request.method === "OPTIONS") {
+      return handleOptions(request, origin);
+    } else {
+      const query = reqUrl.searchParams.get("q");
+
+      if (request.method === "GET" && query) {
         const md = await extractMetadata(query);
         const ret = new Response(JSON.stringify(md), {
           headers: {
@@ -44,9 +33,15 @@ export default {
           },
         });
         return ret;
+      } else {
+        return new Response(
+          JSON.stringify({
+            error: "400 Bad Request",
+            message: help(reqUrl.origin),
+          }),
+          { status: 400, headers: { "content-type": "application/json" } }
+        );
       }
-    } else {
-      return new Response("Not Found", { status: 404 });
     }
   },
 };
@@ -109,4 +104,33 @@ async function extractMetadata(query: string): Promise<Metadata> {
     ?.getAttribute("content");
 
   return { title, description, url, image };
+}
+
+function help(host: string): string {
+  return `
+Hi! This is a link-preview service on Cloudflare Workers.
+
+If you are seeing this message, at least you connected to our endpoint successfully.
+
+Correct usage is:
+
+    GET ${host}?q=https://cloudflare.com
+
+This should return JSON payload like this:
+
+    {
+      "title": "Cloudflare - The Web Performance & Security Company",
+      "description": "Here at Cloudflare, we make the Internet work the way it should. Offering CDN, DNS, DDoS protection and security, find out how we can help your site.",
+      "url": "https://www.cloudflare.com/",
+      "image": "https://www.cloudflare.com/static/b30a57477bde900ba55c0b5f98c4e524/Cloudflare_default_OG_.png"
+    }
+
+In short, supply whatever public URL as a query parameter "q", then send GET request. That's all!
+If the URL contains non-ASCII characters, url-encode them.
+
+Source code: https://github.com/ymtszw/link-preview
+
+This service is EXTREMELY easy to self-host; i.e. deploy on your own Cloudflare account.
+If you are going to throw many link-preview requests here, do consider it!
+`;
 }
