@@ -37,6 +37,7 @@ You just need some HTTP client capability and JSON handling.
 
 1. Prepare your Cloudflare Account
 2. Click: [![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/ymtszw/link-preview)
+   - It should fork this repository and set up your Cloudflare Account, then deploys the service
 
 ## Develop locally
 
