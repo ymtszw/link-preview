@@ -1,17 +1,17 @@
 {
   "name": "link-preview",
   "version": "0.0.0",
-  "devDependencies": {
-    "@cloudflare/workers-types": "^4.20221111.1",
-    "typescript": "^4.9.4",
-    "wrangler": "2.6.1"
-  },
   "private": true,
   "scripts": {
     "start": "wrangler dev",
     "deploy": "wrangler publish"
   },
   "dependencies": {
-    "node-html-parser": "^6.1.4"
+    "node-html-parser": "^6.1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20221111",
+    "typescript": "^4.9",
+    "wrangler": "^2.6"
   }
 }
