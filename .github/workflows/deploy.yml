@@ -15,8 +15,8 @@ jobs:
       - name: Publish
         uses: cloudflare/wrangler-action@2.0.0
         with:
-          wranglerVersion: '2.13.0'
           preCommands: |
             npm ci
+          command: publish
           apiToken: ${{ secrets.CF_API_TOKEN }}
           accountId: ${{ secrets.CF_ACCOUNT_ID }}
