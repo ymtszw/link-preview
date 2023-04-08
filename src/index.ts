@@ -76,10 +76,14 @@ type Metadata = {
   description?: string | null;
   url?: string | null;
   image?: string | null;
+  error?: string | null;
 };
 
 async function extractMetadata(query: string): Promise<Metadata> {
   const res = await fetch(query, { redirect: "follow" });
+  if (res.status >= 400) {
+    return { error: `[Error] ${query} returned status code: ${res.status}!` };
+  }
   const body = await res.text();
   const parsed = parse(body);
 
