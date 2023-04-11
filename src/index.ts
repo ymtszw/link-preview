@@ -98,14 +98,46 @@ async function extractMetadata(query: string): Promise<Metadata> {
       ?.getAttribute("content") ||
     parsed.querySelector('meta[name="description"]')?.getAttribute("content");
 
-  const url =
-    parsed.querySelector('link[rel="canonical"]')?.getAttribute("href") ||
-    parsed.querySelector('meta[property="og:url"]')?.getAttribute("content") ||
-    query;
+  let url = query;
+  const canonicalUrl = parsed
+    .querySelector('link[rel="canonical"]')
+    ?.getAttribute("href");
+  if (canonicalUrl) {
+    if (
+      canonicalUrl?.startsWith("https://") ||
+      canonicalUrl?.startsWith("http://")
+    ) {
+      url = canonicalUrl;
+    } else {
+      // Resolve relative URL
+      url = new URL(canonicalUrl, query).href;
+    }
+  } else {
+    const ogpUrl = parsed
+      .querySelector('meta[property="og:url"]')
+      ?.getAttribute("content");
+    if (ogpUrl) {
+      if (ogpUrl?.startsWith("https://") || ogpUrl?.startsWith("http://")) {
+        url = ogpUrl;
+      } else {
+        // Resolve relative URL
+        url = new URL(ogpUrl, query).href;
+      }
+    }
+  }
 
-  const image = parsed
+  let image;
+  const ogpImage = parsed
     .querySelector('meta[property="og:image"]')
     ?.getAttribute("content");
+  if (ogpImage) {
+    if (ogpImage?.startsWith("https://") || ogpImage?.startsWith("http://")) {
+      image = ogpImage;
+    } else {
+      // Resolve relative URL
+      image = new URL(ogpImage, query).href;
+    }
+  }
 
   return { title, description, url, image };
 }
