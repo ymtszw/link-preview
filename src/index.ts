@@ -4,7 +4,7 @@
  * Workers doc: https://developers.cloudflare.com/workers/
  */
 
-import { parse } from "node-html-parser";
+import { HTMLElement, parse } from "node-html-parser";
 
 export interface Env {}
 
@@ -23,16 +23,26 @@ export default {
       const query = reqUrl.searchParams.get("q");
 
       if (request.method === "GET" && query) {
-        const md = await extractMetadata(query);
-        const ret = new Response(JSON.stringify(md), {
-          headers: {
-            "content-type": "application/json",
-            Vary: "Origin",
-            "Access-Control-Allow-Origin": origin,
-            "Access-Control-Allow-Methods": "GET",
-          },
-        });
-        return ret;
+        try {
+          const md = await extractMetadata(query);
+          const ret = new Response(JSON.stringify(md), {
+            headers: {
+              "content-type": "application/json",
+              Vary: "Origin",
+              "Access-Control-Allow-Origin": origin,
+              "Access-Control-Allow-Methods": "GET",
+            },
+          });
+          return ret;
+        } catch (e) {
+          return new Response(
+            JSON.stringify({
+              error: `[Unhandled Error] ${e}`,
+              message: help(reqUrl.origin),
+            }),
+            { status: 500, headers: { "content-type": "application/json" } }
+          );
+        }
       } else {
         return new Response(
           JSON.stringify({
@@ -76,6 +86,7 @@ type Metadata = {
   description?: string | null;
   url?: string | null;
   image?: string | null;
+  charset?: string | null;
   error?: string | null;
 };
 
@@ -84,8 +95,16 @@ async function extractMetadata(query: string): Promise<Metadata> {
   if (res.status >= 400) {
     return { error: `[Error] ${query} returned status code: ${res.status}!` };
   }
-  const body = await res.text();
-  const parsed = parse(body);
+
+  const rawBody = await res.arrayBuffer();
+  const utf8Body = new TextDecoder("utf-8").decode(rawBody);
+  const parsedUtf8Body = parse(utf8Body);
+  const detectedCharset = detectCharset(res.headers, parsedUtf8Body);
+  console.log("Detected charset", detectedCharset);
+  const parsed =
+    detectedCharset === "utf-8"
+      ? parsedUtf8Body
+      : parse(new TextDecoder(detectedCharset).decode(rawBody));
 
   const title =
     parsed
@@ -139,7 +158,28 @@ async function extractMetadata(query: string): Promise<Metadata> {
     }
   }
 
-  return { title, description, url, image };
+  return { title, description, url, image, charset: detectedCharset };
+}
+
+function detectCharset(
+  headers: Headers,
+  parsed: HTMLElement
+): "utf-8" | "shift_jis" | string {
+  const headerContentType = headers.get("content-type");
+  const headerCharset = headerContentType?.includes("charset=")
+    ? headerContentType.split("charset=")[1].toLowerCase()
+    : undefined;
+
+  const bodyContentType = parsed
+    .querySelector('head > meta[http-equiv="Content-Type" i]')
+    ?.getAttribute("content");
+  const bodyCharset = bodyContentType?.includes("charset=")
+    ? bodyContentType.split("charset=")[1].toLowerCase()
+    : undefined;
+
+  // TODO: headerCharsetとbodyCharsetが食い違った場合、headerCharsetを優先しているが、
+  // bodyCharsetを優先したほうが打率が高そうであれば変更するかも
+  return headerCharset || bodyCharset || "utf-8";
 }
 
 function help(host: string): string {
