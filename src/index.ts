@@ -33,11 +33,11 @@ export default {
         } catch (e) {
           return new Response(
             JSON.stringify({
-              error: `[Unhandled Error] ${e}`,
+              error: `[Failed to preview] ${e}`,
               message: help(reqUrl.origin),
             }),
             {
-              status: 500,
+              status: 422,
               headers: withCorsHeaders(origin, {
                 "content-type": "application/json",
               }),
