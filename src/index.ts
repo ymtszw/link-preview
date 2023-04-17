@@ -25,22 +25,23 @@ export default {
       if (request.method === "GET" && query) {
         try {
           const md = await extractMetadata(query);
-          const ret = new Response(JSON.stringify(md), {
-            headers: {
+          return new Response(JSON.stringify(md), {
+            headers: withCorsHeaders(origin, {
               "content-type": "application/json",
-              Vary: "Origin",
-              "Access-Control-Allow-Origin": origin,
-              "Access-Control-Allow-Methods": "GET",
-            },
+            }),
           });
-          return ret;
         } catch (e) {
           return new Response(
             JSON.stringify({
               error: `[Unhandled Error] ${e}`,
               message: help(reqUrl.origin),
             }),
-            { status: 500, headers: { "content-type": "application/json" } }
+            {
+              status: 500,
+              headers: withCorsHeaders(origin, {
+                "content-type": "application/json",
+              }),
+            }
           );
         }
       } else {
@@ -49,7 +50,12 @@ export default {
             error: "400 Bad Request",
             message: help(reqUrl.origin),
           }),
-          { status: 400, headers: { "content-type": "application/json" } }
+          {
+            status: 400,
+            headers: withCorsHeaders(origin, {
+              "content-type": "application/json",
+            }),
+          }
         );
       }
     }
@@ -65,14 +71,11 @@ function handleOptions(request: Request, origin: string) {
     headers.get("Access-Control-Request-Headers") !== null
   ) {
     return new Response(null, {
-      headers: {
-        Vary: "Origin",
-        "Access-Control-Allow-Origin": origin,
-        "Access-Control-Allow-Methods": "GET",
+      headers: withCorsHeaders(origin, {
         "Access-Control-Max-Age": "86400",
         "Access-Control-Allow-Headers":
           request.headers.get("Access-Control-Request-Headers") || "",
-      },
+      }),
     });
   } else {
     return new Response(null, {
@@ -209,4 +212,16 @@ Source code: https://github.com/ymtszw/link-preview
 This service is EXTREMELY easy to self-host; i.e. deploy on your own Cloudflare account.
 If you are going to throw many link-preview requests here, do consider it!
 `;
+}
+
+function withCorsHeaders(
+  origin: string,
+  otherHeaders: HeadersInit
+): HeadersInit {
+  return {
+    ...otherHeaders,
+    Vary: "Origin",
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Methods": "GET",
+  };
 }
