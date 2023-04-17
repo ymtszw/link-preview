@@ -170,18 +170,28 @@ function detectCharset(
 ): "utf-8" | "shift_jis" | string {
   const headerContentType = headers.get("content-type");
   const headerCharset = headerContentType?.includes("charset=")
-    ? headerContentType.split("charset=")[1].toLowerCase()
+    ? headerContentType
+        .split("charset=")[1]
+        .toLowerCase()
+        .replace(/^["']/, "")
+        .replace(/["']$/, "")
     : undefined;
 
   const bodyContentType = parsed
     .querySelector('head > meta[http-equiv="Content-Type" i]')
     ?.getAttribute("content");
   const bodyCharset = bodyContentType?.includes("charset=")
-    ? bodyContentType.split("charset=")[1].toLowerCase()
+    ? bodyContentType
+        .split("charset=")[1]
+        .toLowerCase()
+        .replace(/^["']/, "")
+        .replace(/["']$/, "")
     : undefined;
 
   // TODO: headerCharsetとbodyCharsetが食い違った場合、headerCharsetを優先しているが、
   // bodyCharsetを優先したほうが打率が高そうであれば変更するかも
+  console.debug("headerCharset", headerCharset);
+  console.debug("bodyCharset", bodyCharset);
   return headerCharset || bodyCharset || "utf-8";
 }
 
