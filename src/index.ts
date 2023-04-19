@@ -4,6 +4,7 @@
  * Workers doc: https://developers.cloudflare.com/workers/
  */
 
+import { version } from "../package.json";
 import { HTMLElement, parse } from "node-html-parser";
 
 export interface Env {}
@@ -94,7 +95,13 @@ type Metadata = {
 };
 
 async function extractMetadata(query: string): Promise<Metadata> {
-  const res = await fetch(query, { redirect: "follow" });
+  const headers = {
+    accept: "text/html,application/xhtml+xml",
+    // When declared as Bot, some sites generously return prerendered metadata for preview (e.g. Twitter)
+    "user-agent": `LinkPreviewBot/${version}`,
+    "accept-language": "ja-JP",
+  };
+  const res = await fetch(query, { redirect: "follow", headers: headers });
   if (res.status >= 400) {
     return { error: `[Error] ${query} returned status code: ${res.status}!` };
   }
