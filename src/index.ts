@@ -184,7 +184,10 @@ function detectCharset(
 
   let bodyCharset = parsed
     .querySelector("meta[charset]")
-    ?.getAttribute("charset");
+    ?.getAttribute("charset")
+    ?.toLowerCase()
+    .replace(/^["']/, "")
+    .replace(/["']$/, "");
   if (!bodyCharset) {
     const bodyContentType = parsed
       .querySelector('meta[http-equiv="Content-Type" i]')
