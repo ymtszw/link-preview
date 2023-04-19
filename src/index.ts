@@ -121,14 +121,18 @@ async function extractMetadata(query: string): Promise<Metadata> {
 
   const title =
     $('meta[property="og:title"]')?.getAttribute("content") ||
+    $('meta[property="twitter:title"]')?.getAttribute("content") ||
     $("title")?.textContent;
 
   const description =
     $('meta[property="og:description"]')?.getAttribute("content") ||
+    $('meta[property="twitter:description"]')?.getAttribute("content") ||
     $('meta[name="description"]')?.getAttribute("content");
 
   let url = query;
-  const canonicalUrl = $('link[rel="canonical"]')?.getAttribute("href");
+  const canonicalUrl =
+    $('link[rel="canonical"]')?.getAttribute("href") ||
+    $('meta[property="og:url"]')?.getAttribute("content");
   if (canonicalUrl) {
     if (
       canonicalUrl?.startsWith("https://") ||
@@ -139,20 +143,12 @@ async function extractMetadata(query: string): Promise<Metadata> {
       // Resolve relative URL
       url = new URL(canonicalUrl, query).href;
     }
-  } else {
-    const ogpUrl = $('meta[property="og:url"]')?.getAttribute("content");
-    if (ogpUrl) {
-      if (ogpUrl?.startsWith("https://") || ogpUrl?.startsWith("http://")) {
-        url = ogpUrl;
-      } else {
-        // Resolve relative URL
-        url = new URL(ogpUrl, query).href;
-      }
-    }
   }
 
   let image;
-  const ogpImage = $('meta[property="og:image"]')?.getAttribute("content");
+  const ogpImage =
+    $('meta[property="og:image"]')?.getAttribute("content") ||
+    $('meta[property="twitter:image"]')?.getAttribute("content");
   if (ogpImage) {
     if (ogpImage?.startsWith("https://") || ogpImage?.startsWith("http://")) {
       image = ogpImage;
