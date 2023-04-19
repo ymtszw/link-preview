@@ -103,7 +103,15 @@ async function extractMetadata(query: string): Promise<Metadata> {
     "user-agent": `LinkPreviewBot/${version}`,
     "accept-language": "ja-JP",
   };
-  const res = await fetch(query, { redirect: "follow", headers: headers });
+  const cacheBehavior = {
+    cacheTtlByStatus: { "200-499": 60 * 60 * 24 * 7, "500-599": 0 },
+    cacheEverything: true,
+  };
+  const res = await fetch(query, {
+    redirect: "follow",
+    headers: headers,
+    cf: cacheBehavior,
+  });
   if (res.status >= 400) {
     return { error: `[Error] ${query} returned status code: ${res.status}!` };
   }
