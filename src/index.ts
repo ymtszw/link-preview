@@ -182,16 +182,21 @@ function detectCharset(
         .replace(/["']$/, "")
     : undefined;
 
-  const bodyContentType = parsed
-    .querySelector('head > meta[http-equiv="Content-Type" i]')
-    ?.getAttribute("content");
-  const bodyCharset = bodyContentType?.includes("charset=")
-    ? bodyContentType
+  let bodyCharset = parsed
+    .querySelector("meta[charset]")
+    ?.getAttribute("charset");
+  if (!bodyCharset) {
+    const bodyContentType = parsed
+      .querySelector('meta[http-equiv="Content-Type" i]')
+      ?.getAttribute("content");
+    if (bodyContentType?.includes("charset=")) {
+      bodyCharset = bodyContentType
         .split("charset=")[1]
         .toLowerCase()
         .replace(/^["']/, "")
-        .replace(/["']$/, "")
-    : undefined;
+        .replace(/["']$/, "");
+    }
+  }
 
   // TODO: headerCharsetとbodyCharsetが食い違った場合、headerCharsetを優先しているが、
   // bodyCharsetを優先したほうが打率が高そうであれば変更するかも
