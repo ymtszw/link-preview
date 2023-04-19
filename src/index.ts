@@ -117,22 +117,18 @@ async function extractMetadata(query: string): Promise<Metadata> {
     detectedCharset === "utf-8"
       ? parsedUtf8Body
       : parse(new TextDecoder(detectedCharset).decode(rawBody));
+  const $ = (q: string) => parsed.querySelector(q);
 
   const title =
-    parsed
-      .querySelector('meta[property="og:title"]')
-      ?.getAttribute("content") || parsed.querySelector("title")?.textContent;
+    $('meta[property="og:title"]')?.getAttribute("content") ||
+    $("title")?.textContent;
 
   const description =
-    parsed
-      .querySelector('meta[property="og:description"]')
-      ?.getAttribute("content") ||
-    parsed.querySelector('meta[name="description"]')?.getAttribute("content");
+    $('meta[property="og:description"]')?.getAttribute("content") ||
+    $('meta[name="description"]')?.getAttribute("content");
 
   let url = query;
-  const canonicalUrl = parsed
-    .querySelector('link[rel="canonical"]')
-    ?.getAttribute("href");
+  const canonicalUrl = $('link[rel="canonical"]')?.getAttribute("href");
   if (canonicalUrl) {
     if (
       canonicalUrl?.startsWith("https://") ||
@@ -144,9 +140,7 @@ async function extractMetadata(query: string): Promise<Metadata> {
       url = new URL(canonicalUrl, query).href;
     }
   } else {
-    const ogpUrl = parsed
-      .querySelector('meta[property="og:url"]')
-      ?.getAttribute("content");
+    const ogpUrl = $('meta[property="og:url"]')?.getAttribute("content");
     if (ogpUrl) {
       if (ogpUrl?.startsWith("https://") || ogpUrl?.startsWith("http://")) {
         url = ogpUrl;
@@ -158,9 +152,7 @@ async function extractMetadata(query: string): Promise<Metadata> {
   }
 
   let image;
-  const ogpImage = parsed
-    .querySelector('meta[property="og:image"]')
-    ?.getAttribute("content");
+  const ogpImage = $('meta[property="og:image"]')?.getAttribute("content");
   if (ogpImage) {
     if (ogpImage?.startsWith("https://") || ogpImage?.startsWith("http://")) {
       image = ogpImage;
