@@ -27,9 +27,11 @@ export default {
         try {
           const md = await extractMetadata(query);
           return new Response(JSON.stringify(md), {
-            headers: withCorsHeaders(origin, {
-              "content-type": "application/json",
-            }),
+            headers: withMonthLongCache(
+              withCorsHeaders(origin, {
+                "content-type": "application/json",
+              })
+            ),
           });
         } catch (e) {
           return new Response(
@@ -240,5 +242,12 @@ function withCorsHeaders(
     Vary: "Origin",
     "Access-Control-Allow-Origin": origin,
     "Access-Control-Allow-Methods": "GET",
+  };
+}
+
+function withMonthLongCache(otherHeaders: HeadersInit): HeadersInit {
+  return {
+    ...otherHeaders,
+    "Cache-Control": "public, max-age=2592000",
   };
 }
