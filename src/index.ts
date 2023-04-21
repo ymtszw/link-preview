@@ -19,11 +19,12 @@ export default {
     const origin = request.headers.get("Origin") || "*";
 
     if (request.method === "OPTIONS") {
+      // Handle (accept) preflight requests from web browsers
       return handleOptions(request, origin);
-    } else {
+    } else if (request.method === "GET") {
       const query = reqUrl.searchParams.get("q");
-
-      if (request.method === "GET" && query) {
+      if (query) {
+        // Primary feature: Return website's metadata for preview
         try {
           const md = await extractMetadata(query);
           return new Response(JSON.stringify(md), {
@@ -34,33 +35,19 @@ export default {
             ),
           });
         } catch (e) {
-          return new Response(
-            JSON.stringify({
-              error: `[Failed to preview] ${e}`,
-              message: help(reqUrl.origin),
-            }),
-            {
-              status: 422,
-              headers: withCorsHeaders(origin, {
-                "content-type": "application/json",
-              }),
-            }
-          );
+          return handleError(422, `[Failed to preview] ${e}`, origin);
         }
       } else {
-        return new Response(
-          JSON.stringify({
-            error: "400 Bad Request",
-            message: help(reqUrl.origin),
-          }),
-          {
-            status: 400,
-            headers: withCorsHeaders(origin, {
-              "content-type": "application/json",
-            }),
-          }
-        );
+        const twitterUserName = reqUrl.searchParams.get("tw-profile-icon");
+        if (twitterUserName) {
+          // Hidden feature: Directly return Twitter profile image (and cache)
+          return handleGetTwitterProfileImage(twitterUserName, origin);
+        } else {
+          return handleError(400, "Bad Request", origin);
+        }
       }
+    } else {
+      return handleError(400, "Bad Request", origin);
     }
   },
 };
@@ -84,6 +71,36 @@ function handleOptions(request: Request, origin: string) {
     return new Response(null, {
       headers: { Allow: "GET" },
     });
+  }
+}
+
+async function handleGetTwitterProfileImage(
+  twitterUserName: string,
+  origin: string
+): Promise<Response> {
+  const url = `https://twitter.com/${twitterUserName}`;
+  const md = await extractMetadata(url);
+  // Profile page has profile image URL as metadata
+  if (md.image) {
+    const res = await fetch(md.image);
+    const contentType = res.headers.get("content-type") || "text/plain";
+    if (contentType.startsWith("image/")) {
+      // Hide origin info, creating new Response object.
+      return new Response(res.body, {
+        status: res.status,
+        headers: withMonthLongCache(
+          withCorsHeaders(origin, { "content-type": contentType })
+        ),
+      });
+    } else {
+      return handleError(
+        422,
+        `${url} does not have user profile image!`,
+        origin
+      );
+    }
+  } else {
+    return handleError(404, "Not Found", origin);
   }
 }
 
@@ -254,4 +271,23 @@ function withMonthLongCache(otherHeaders: HeadersInit): HeadersInit {
     ...otherHeaders,
     "Cache-Control": "public, max-age=2592000",
   };
+}
+
+function handleError(
+  status: number,
+  message: string,
+  origin: string
+): Response {
+  return new Response(
+    JSON.stringify({
+      error: message,
+      message: help(origin),
+    }),
+    {
+      status: status,
+      headers: withCorsHeaders(origin, {
+        "content-type": "application/json",
+      }),
+    }
+  );
 }
