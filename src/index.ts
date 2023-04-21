@@ -74,6 +74,11 @@ function handleOptions(request: Request, origin: string) {
   }
 }
 
+const subrequestCacheBehavior = {
+  cacheTtlByStatus: { "200-499": 60 * 60 * 24 * 7, "500-599": 0 },
+  cacheEverything: true,
+};
+
 async function handleGetTwitterProfileImage(
   twitterUserName: string,
   origin: string
@@ -82,7 +87,7 @@ async function handleGetTwitterProfileImage(
   const md = await extractMetadata(url);
   // Profile page has profile image URL as metadata
   if (md.image) {
-    const res = await fetch(md.image);
+    const res = await fetch(md.image, { cf: subrequestCacheBehavior });
     const contentType = res.headers.get("content-type") || "text/plain";
     if (contentType.startsWith("image/")) {
       // Hide origin info, creating new Response object.
@@ -120,14 +125,10 @@ async function extractMetadata(query: string): Promise<Metadata> {
     "user-agent": `LinkPreviewBot/${version}`,
     "accept-language": "ja-JP",
   };
-  const cacheBehavior = {
-    cacheTtlByStatus: { "200-499": 60 * 60 * 24 * 7, "500-599": 0 },
-    cacheEverything: true,
-  };
   const res = await fetch(query, {
     redirect: "follow",
     headers: headers,
-    cf: cacheBehavior,
+    cf: subrequestCacheBehavior,
   });
   if (res.status >= 400) {
     return { error: `[Error] ${query} returned status code: ${res.status}!` };
