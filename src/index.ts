@@ -310,6 +310,8 @@ function handleError(
       status: status,
       headers: withCorsHeaders(origin, {
         "content-type": "application/json",
+        "Cache-Control": "public, max-age=" + 60 * 60,
+        "CDN-Cache-Control": "public, max-age=" + 10 * 60,
       }),
     }
   );
