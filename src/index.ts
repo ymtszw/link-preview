@@ -9,6 +9,10 @@ import { HTMLElement, parse } from "node-html-parser";
 
 export interface Env {}
 
+function dbg(...message: any[]) {
+  console.info("[✌ link-preview] ", ...message);
+}
+
 export default {
   async fetch(
     request: Request,
@@ -87,9 +91,16 @@ async function handleGetTwitterProfileImage(
   const md = await extractMetadata(url);
   // Profile page has profile image URL as metadata
   if (md.image) {
-    const res = await fetch(md.image, { cf: subrequestCacheBehavior });
+    const res = await fetch(md.image, {
+      cf: { ...subrequestCacheBehavior, cacheKey: twitterUserName },
+    });
     const contentType = res.headers.get("content-type") || "text/plain";
     if (contentType.startsWith("image/")) {
+      let loggedHeaders = "";
+      for (const [k, v] of res.headers.entries()) {
+        loggedHeaders += `\t${k}: ${v}\n`;
+      }
+      dbg(`Subrequest headers:\n${loggedHeaders}`);
       // Hide origin info, creating new Response object.
       return new Response(res.body, {
         status: res.status,
@@ -128,7 +139,7 @@ async function extractMetadata(query: string): Promise<Metadata> {
   const res = await fetch(query, {
     redirect: "follow",
     headers: headers,
-    cf: subrequestCacheBehavior,
+    cf: { ...subrequestCacheBehavior, cacheKey: query },
   });
   if (res.status >= 400) {
     return { error: `[Error] ${query} returned status code: ${res.status}!` };
@@ -138,7 +149,7 @@ async function extractMetadata(query: string): Promise<Metadata> {
   const utf8Body = new TextDecoder("utf-8").decode(rawBody);
   const parsedUtf8Body = parse(utf8Body);
   const detectedCharset = detectCharset(res.headers, parsedUtf8Body);
-  console.log("Detected charset", detectedCharset);
+  dbg("Detected charset", detectedCharset);
   const parsed =
     detectedCharset === "utf-8"
       ? parsedUtf8Body
@@ -221,8 +232,8 @@ function detectCharset(
 
   // TODO: headerCharsetとbodyCharsetが食い違った場合、headerCharsetを優先しているが、
   // bodyCharsetを優先したほうが打率が高そうであれば変更するかも
-  console.debug("headerCharset", headerCharset);
-  console.debug("bodyCharset", bodyCharset);
+  dbg("headerCharset", headerCharset);
+  dbg("bodyCharset", bodyCharset);
   return headerCharset || bodyCharset || "utf-8";
 }
 
@@ -270,7 +281,8 @@ function withCorsHeaders(
 function withMonthLongCache(otherHeaders: HeadersInit): HeadersInit {
   return {
     ...otherHeaders,
-    "Cache-Control": "public, max-age=2592000",
+    "Cache-Control": `public, max-age=${30 * 24 * 60 * 60}`,
+    "CDN-Cache-Control": `public, max-age=${7 * 24 * 60 * 60}`,
   };
 }
 
