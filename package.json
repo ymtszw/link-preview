@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "license": "MIT",
   "scripts": {
-    "start": "wrangler dev --local",
+    "start": "wrangler dev",
     "deploy": "wrangler publish"
   },
   "dependencies": {
