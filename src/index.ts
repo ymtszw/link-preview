@@ -94,13 +94,9 @@ async function handleGetTwitterProfileImage(
     const res = await fetch(md.image, {
       cf: { ...subrequestCacheBehavior, cacheKey: twitterUserName },
     });
+    logSubrequest(res);
     const contentType = res.headers.get("content-type") || "text/plain";
     if (contentType.startsWith("image/")) {
-      let loggedHeaders = "";
-      for (const [k, v] of res.headers.entries()) {
-        loggedHeaders += `\t${k}: ${v}\n`;
-      }
-      dbg(`Subrequest headers:\n${loggedHeaders}`);
       // Hide origin info, creating new Response object.
       return new Response(res.body, {
         status: res.status,
@@ -129,6 +125,15 @@ type Metadata = {
   error?: string | null;
 };
 
+function logSubrequest(res: Response) {
+  dbg(`Subrequest: ${res.url} ${res.status}`);
+  let loggedHeaders = "";
+  for (const [k, v] of res.headers.entries()) {
+    loggedHeaders += `\t${k}: ${v}\n`;
+  }
+  dbg(`Subrequest headers:\n${loggedHeaders}`);
+}
+
 async function extractMetadata(query: string): Promise<Metadata> {
   const headers = {
     accept: "text/html,application/xhtml+xml",
@@ -141,6 +146,7 @@ async function extractMetadata(query: string): Promise<Metadata> {
     headers: headers,
     cf: { ...subrequestCacheBehavior, cacheKey: query },
   });
+  logSubrequest(res);
   if (res.status >= 400) {
     return { error: `[Error] ${query} returned status code: ${res.status}!` };
   }
@@ -281,8 +287,12 @@ function withCorsHeaders(
 function withMonthLongCache(otherHeaders: HeadersInit): HeadersInit {
   return {
     ...otherHeaders,
-    "Cache-Control": `public, max-age=${30 * 24 * 60 * 60}`,
-    "CDN-Cache-Control": `public, max-age=${7 * 24 * 60 * 60}`,
+    "Cache-Control":
+      "public, stale-if-error=60, stale-while-revalidate=60, max-age=" +
+      30 * 24 * 60 * 60,
+    "CDN-Cache-Control":
+      "public, stale-if-error=60, stale-while-revalidate=60, max-age=" +
+      7 * 24 * 60 * 60,
   };
 }
 
