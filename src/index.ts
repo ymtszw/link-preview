@@ -31,13 +31,17 @@ export default {
         // Primary feature: Return website's metadata for preview
         try {
           const md = await extractMetadata(query);
-          return new Response(JSON.stringify(md), {
-            headers: withMonthLongCache(
-              withCorsHeaders(origin, {
-                "content-type": "application/json",
-              })
-            ),
-          });
+          if (md.error) {
+            return handleError(md.status || 500, md.error, origin);
+          } else {
+            return new Response(JSON.stringify(md), {
+              headers: withMonthLongCache(
+                withCorsHeaders(origin, {
+                  "content-type": "application/json",
+                })
+              ),
+            });
+          }
         } catch (e) {
           return handleError(422, `[Failed to preview] ${e}`, origin);
         }
@@ -117,12 +121,13 @@ async function handleGetTwitterProfileImage(
 }
 
 type Metadata = {
-  title?: string | null;
-  description?: string | null;
-  url?: string | null;
-  image?: string | null;
-  charset?: string | null;
-  error?: string | null;
+  title?: string;
+  description?: string;
+  url?: string;
+  image?: string;
+  charset?: string;
+  status?: number;
+  error?: string;
 };
 
 function logSubrequest(res: Response) {
@@ -148,7 +153,10 @@ async function extractMetadata(query: string): Promise<Metadata> {
   });
   logSubrequest(res);
   if (res.status >= 400) {
-    return { error: `[Error] ${query} returned status code: ${res.status}!` };
+    return {
+      error: `[Error] ${query} returned status code: ${res.status}!`,
+      status: res.status,
+    };
   }
 
   const rawBody = await res.arrayBuffer();
@@ -303,6 +311,7 @@ function handleError(
 ): Response {
   return new Response(
     JSON.stringify({
+      status: status,
       error: message,
       message: help(origin),
     }),
