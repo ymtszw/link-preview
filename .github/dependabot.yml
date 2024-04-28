@@ -1,0 +1,28 @@
+version: 2
+updates:
+  # See https://docs.github.com/en/code-security/dependabot/working-with-dependabot/keeping-your-actions-up-to-date-with-dependabot
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      dependabot:
+        patterns:
+          - "*"
+  - package-ecosystem: "npm"
+    versioning-strategy: "lockfile-only"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      dependabot:
+        patterns:
+          - "*"
+  - package-ecosystem: "elm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      dependabot:
+        patterns:
+          - "*"
