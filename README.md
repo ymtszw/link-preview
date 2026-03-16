@@ -57,3 +57,32 @@ $ curl 'http://localhost:8787?q=https://cloudflare.com' | jq .
   "image": "https://www.cloudflare.com/static/b30a57477bde900ba55c0b5f98c4e524/Cloudflare_default_OG_.png"
 }
 ```
+
+## Smoke test
+
+This project includes a bash script `smoke.sh` for smoke testing.
+
+### Usage
+
+```sh
+./smoke.sh <endpoint-url>
+```
+
+- `<endpoint-url>`: Specify the URL of the environment you want to test directly.
+  - Example: `http://localhost:8787` (wrangler development server)
+  - Example: `https://<your-deployed-url>` (Cloudflare Worker deployed environment, etc.)
+
+The test target URL is fixed to `https://cloudflare.com`.
+
+### Examples
+
+```sh
+# Test against production deployment
+./smoke.sh https://<your-deployed-url>
+
+# Test against development server
+./smoke.sh http://localhost:8787
+```
+
+The test is considered successful if both `title` and `url` are obtained.
+If it fails, the response JSON will be displayed.
