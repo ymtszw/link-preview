@@ -20,3 +20,6 @@ jobs:
           command: publish
           apiToken: ${{ secrets.CF_API_TOKEN }}
           accountId: ${{ secrets.CF_ACCOUNT_ID }}
+
+      - name: Run smoke.sh against production
+        run: bash smoke.sh https://link-preview.ymtszw.workers.dev
