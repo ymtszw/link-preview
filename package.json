@@ -10,7 +10,7 @@
     "node-html-parser": "^6.1"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20221111",
+    "@cloudflare/workers-types": "^5.20261102.1",
     "typescript": "^5.4",
     "wrangler": "^4.74"
   }
